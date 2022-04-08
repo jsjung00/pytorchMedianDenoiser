@@ -9,6 +9,7 @@ from torchvision.datasets import CIFAR10
 from torchvision import transforms
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.loop import Loop 
 #plotting
 import matplotlib.pyplot as plt 
 import matplotlib 
@@ -17,16 +18,6 @@ import numpy as np
 from median_filter import MedianFilterer
 import sys 
 
-'''
-median_filterer = MedianFilterer(kernel_size = 2, stride=1, padding=0, same=True)
-#test_one =  torch.tensor(np.arange(1,10).reshape((3,3)))
-test_two = torch.tensor(np.arange(1,28).reshape((3,3,3)), dtype=torch.float64)
-test_two = torch.unsqueeze(test_two, dim=0)
-
-#test_one = median_filterer(test_one)
-test_two = median_filterer(test_two)
-print(f'test_two {test_two}') 
-'''
 transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize((0.5,),(0.5,))
@@ -119,7 +110,20 @@ class Fully_Conv(pl.LightningModule):
         x_hat = nn.Conv2d(n_init_features, 3, kernel_size=(3,3), stride=stride, padding="same")(x)
         return x_hat 
     
-    def _get_reconstruction_loss(self, batch):
+    def _get_batches_loss(self, batch):
+        '''
+        Given a batch of images, creates multiple batches by randomingly adding noise to the data
+        at different noise levels and shuffles data
+        '''
+        x, _ =  original_batch
+        print(f'size of batch {x.size()}')
+        
+        #iterate over noise levels of step 5%
+        #for j in range(5,40, 5):
+
+
+
+    def _get_batch_loss(self, batch):
         """
         Given a batch of images, this function returns the reconstruction loss (MSE in our case)
         """
@@ -150,6 +154,7 @@ class Fully_Conv(pl.LightningModule):
         self.log('val_loss', loss)
     
     def test_step(self, batch, batch_idx):
+        loss = 
         loss = self._get_reconstruction_loss(batch)
         self.log('test_loss', loss)
     
@@ -168,6 +173,9 @@ class GenerateCallback(pl.Callback):
             imgs = torch.stack([input_imgs, reconst_imgs], dim=1).flatten(0,1)
             grid = torchvision.utils.make_grid(imgs, nrow=2, normalize=True, range=(-1,1))
             trainer.logger.experiment.add_image("Reconstructions", grid, global_step=trainer.global_step)
+
+class TrainingEpochLoop(Loop):
+    
 
 def train_cifar(experiment_name):
     trainer = pl.Trainer(default_root_dir=os.path.join(CHECKPOINT_PATH, f"cifar10_{experiment_name}"), max_epochs=10, 
@@ -191,7 +199,7 @@ def train_cifar(experiment_name):
     return model, result 
 
 #train
-model_ld, result_ld = train_cifar()
+model_ld, result_ld = train_cifar('first_test')
 
 def visualize_reconstructions(model, input_imgs):
     noisy_imgs = add_noise(input_imgs, prob_zero=0.60)
